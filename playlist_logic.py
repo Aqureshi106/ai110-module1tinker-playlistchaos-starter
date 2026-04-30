@@ -32,6 +32,11 @@ def normalize_genre(genre: str) -> str:
     return genre.lower().strip()
 
 
+def normalize_text_for_matching(text: str) -> str:
+    """Normalize text for keyword matching."""
+    return "".join(ch for ch in text.lower() if ch.isalnum())
+
+
 def normalize_song(raw: Song) -> Song:
     """Return a normalized song dict with expected keys."""
     title = normalize_title(str(raw.get("title", "")))
@@ -71,8 +76,8 @@ def classify_song(song: Song, profile: Dict[str, object]) -> str:
     hype_keywords = ["rock", "punk", "party"]
     chill_keywords = ["lofi", "ambient", "sleep"]
 
-    normalized_genre = "".join(ch for ch in genre.lower() if ch.isalnum())
-    normalized_title = "".join(ch for ch in title.lower() if ch.isalnum())
+    normalized_genre = normalize_text_for_matching(genre)
+    normalized_title = normalize_text_for_matching(title)
 
     is_hype_keyword = any(k in normalized_genre for k in hype_keywords)
     is_chill_keyword = any(k in normalized_title for k in chill_keywords)
