@@ -276,8 +276,8 @@ def render_playlist(label, songs):
         st.write("No songs in this playlist.")
         return
 
-    query = st.text_input(f"Search {label} playlist by artist", key=f"search_{label}")
-    filtered = search_songs(songs, query, field="artist")
+    query = st.text_input(f"Search {label} playlist", key=f"search_{label}")
+    filtered = search_songs(songs, query)
 
     if not filtered:
         st.write("No matching songs.")
@@ -337,9 +337,10 @@ def stats_section(playlists):
 
     top_artist = stats["top_artist"]
     if top_artist:
+        count_label = "song" if stats["top_artist_count"] == 1 else "songs"
         st.write(
             f"Most common artist: {top_artist} "
-            f"({stats['top_artist_count']} songs)"
+            f"({stats['top_artist_count']} {count_label})"
         )
     else:
         st.write("No top artist yet.")

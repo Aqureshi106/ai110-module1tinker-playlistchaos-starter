@@ -24,7 +24,7 @@ def normalize_artist(artist: str) -> str:
     """Normalize an artist name for comparisons."""
     if not artist:
         return ""
-    return artist.strip().lower()
+    return artist.strip()
 
 
 def normalize_genre(genre: str) -> str:
@@ -80,7 +80,9 @@ def classify_song(song: Song, profile: Dict[str, object]) -> str:
     normalized_title = normalize_text_for_matching(title)
 
     is_hype_keyword = any(k in normalized_genre for k in hype_keywords)
-    is_chill_keyword = any(k in normalized_title for k in chill_keywords)
+    is_chill_keyword = any(k in normalized_title for k in chill_keywords) or any(
+        k in normalized_genre for k in chill_keywords
+    )
 
     if energy >= hype_min_energy or genre == favorite_genre or is_hype_keyword:
         return "Hype"
@@ -149,23 +151,27 @@ def compute_playlist_stats(playlists: PlaylistMap) -> Dict[str, object]:
 def most_common_artist(songs: List[Song]) -> Tuple[str, int]:
     """Return the most common artist and count."""
     counts: Dict[str, int] = {}
+    display_names: Dict[str, str] = {}
     for song in songs:
-        artist = str(song.get("artist", ""))
+        artist = str(song.get("artist", "")).strip()
         if not artist:
             continue
-        counts[artist] = counts.get(artist, 0) + 1
+        artist_key = artist.lower()
+        counts[artist_key] = counts.get(artist_key, 0) + 1
+        display_names.setdefault(artist_key, artist)
 
     if not counts:
         return "", 0
 
-    items = sorted(counts.items(), key=lambda item: item[1], reverse=True)
-    return items[0]
+    items = sorted(counts.items(), key=lambda item: (-item[1], display_names[item[0]].lower()))
+    top_key, top_count = items[0]
+    return display_names[top_key], top_count
 
 
 def search_songs(
     songs: List[Song],
     query: str,
-    field: str = "artist",
+    field: Optional[str] = None,
 ) -> List[Song]:
     """Return songs matching the query on a given field."""
     if not query:
@@ -175,9 +181,21 @@ def search_songs(
     filtered: List[Song] = []
 
     for song in songs:
-        value = str(song.get(field, "")).lower()
-        if value and q in value:
-            filtered.append(song)
+        if field:
+            value = str(song.get(field, "")).lower()
+            if value and q in value:
+                filtered.append(song)
+            continue
+
+        searchable_fields = ["title", "artist", "genre", "tags"]
+        for name in searchable_fields:
+            value = song.get(name, "")
+            if isinstance(value, list):
+                value = " ".join(str(item) for item in value)
+            value_text = str(value).lower()
+            if value_text and q in value_text:
+                filtered.append(song)
+                break
 
     return filtered
 
@@ -192,7 +210,7 @@ def lucky_pick(
     elif mode == "chill":
         songs = playlists.get("Chill", [])
     else:
-        songs = playlists.get("Hype", []) + playlists.get("Chill", [])
+        songs = playlists.get("Hype", []) + playlists.get("Chill", []) + playlists.get("Mixed", [])
 
     return random_choice_or_none(songs)
 
