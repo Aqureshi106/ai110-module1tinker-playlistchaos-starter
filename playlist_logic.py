@@ -178,26 +178,28 @@ def search_songs(
         return songs
 
     q = query.lower().strip()
+    searchable_fields = ["title", "artist", "genre", "tags"]
     filtered: List[Song] = []
 
     for song in songs:
         if field:
-            value = str(song.get(field, "")).lower()
-            if value and q in value:
+            if _field_contains_query(song.get(field, ""), q):
                 filtered.append(song)
-            continue
-
-        searchable_fields = ["title", "artist", "genre", "tags"]
-        for name in searchable_fields:
-            value = song.get(name, "")
-            if isinstance(value, list):
-                value = " ".join(str(item) for item in value)
-            value_text = str(value).lower()
-            if value_text and q in value_text:
-                filtered.append(song)
-                break
+        elif any(_field_contains_query(song.get(name, ""), q) for name in searchable_fields):
+            filtered.append(song)
 
     return filtered
+
+
+def _field_contains_query(value: object, query: str) -> bool:
+    """Return True when a field value contains the query text."""
+    if isinstance(value, list):
+        text = " ".join(str(item) for item in value)
+    else:
+        text = str(value)
+
+    normalized_text = text.lower().strip()
+    return bool(normalized_text) and query in normalized_text
 
 
 def lucky_pick(
